@@ -1,46 +1,44 @@
-# Getting Started with Create React App
+Обычно модальное окно должно находиться поверх всех остальных элементов на странице. Но служная структура элементов может создать баги.
+Например если родительский элемент, модального окна имеет zIndex меньше, чем сосед, то сосед будет поверх модального окна.
+Так ``` <div style={BUTTON_WRAPPER_STYLES}>```  имеет ``` zIndex = 1``` , а
+ ``` <div style={OTHER_CONTENT_STYLES}>```  имеет ``` zIndex = 2``` , поэтому OTHER_CONTENT
+отрисовывается поверх модального окна, имеющий стиль ``` zIndex = 1000```
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Поэтому, чтобы избежать визульных побочных эффектов, следует разместить модальное окно на самом верхнем уровне элементов на равне с root.
+Для этого в index.html можно создать специальный элемент: <div id="portal"></div>
+А дальше нужно обернуть возвращаемое значение компонента модального окна в портал:
+``` typescript jsx
+const Modal: FC<{ children: ReactNode, open: boolean, onClose: () => void }> = ({children, open, onClose}) => {
+    if (!open) return null;
 
-## Available Scripts
+    return ReactDOM.createPortal(
+        <>
+            <div style={OVERLAY_STYLE}/>
+            <div style={MODAL_STYLES}>
+                <button onClick={onClose}>Close Modal</button>
+                {children}
+            </div>
+        </>
+        , document.getElementById('portal')!)
+}
+```
+Обратите внимание, что не смотрят на то что модальное окно находится в соседнем с root элементе, его логически-родительский элемент (BUTTON_WRAPPER), получает всплытие событий от модального окна, как буд-то он фактически находится в нём. React выполняет переадресацию событий. и мы получаем clicked в консоли когда нажимаем в любом месте модального окна или его оверлея.
 
-In the project directory, you can run:
 
-### `npm start`
+Так не работает кнопка close, нет переадресации событий, ошибка в консоли:
+```
+const Modal: any = ({children, open, onClose}:any) => {
+    if (!open) return null;
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+    ReactDOM.render(
+        <>
+            <div style={OVERLAY_STYLE}/>
+            <div style={MODAL_STYLES}>
+                <button onClick={onClose}>Close Modal</button>
+                {children}
+            </div>
+        </>
+        , document.getElementById('portal')!)
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
-
-### `npm test`
-
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
-
-### `npm run build`
-
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
-
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
-
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
-
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
-
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
+}
+```
